@@ -1,0 +1,14 @@
+package com.projetoTeste.dto;
+
+import java.util.List;
+import java.util.UUID;
+
+public record NoteResponseDTO(
+        UUID id,
+        String title,
+        String content,
+        String audioUrl,
+        String imageUrl,
+        List<String> biblicalReferences,
+        List<ThemeResponseDTO> themes
+) {}

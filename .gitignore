@@ -1,0 +1,32 @@
+### Java & Maven ###
+target/
+*.jar
+*.war
+*.ear
+
+### Docker (Persistência) ###
+# Bloqueia os dados brutos do MySQL para não sujar o repositório
+mysql_data/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+gen/
+
+
+### Logs & Temp ###
+*.log
+logs/
+temp/
+tmp/
+
+### OS generated files ###
+.DS_Store
+Thumbs.db
+
+### Local Environment Configs ###
+# Se você criar arquivos .env para o Docker, bloqueie-os aqui
+.env

@@ -10,34 +10,67 @@ Uma API RESTful robusta desenvolvida para pastores e pregadores, focada na organ
 
 ## 🚀 Sobre o Projeto
 
-O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite aos usuários gerenciar seu acervo homilético de forma isolada e segura. A plataforma utiliza inteligência na correlação de temas e referências bíblicas, garantindo que o conhecimento nunca seja perdido.
+O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite aos usuários gerenciar seu acervo homilético de forma isolada e segura. A plataforma utiliza inteligência na correlação de temas e referências bíblicas, garantindo que o conhecimento e a inspiração nunca sejam perdidos.
 
 ### 🛠 Funcionalidades Principais
 
-- **Isolamento de Dados (Multi-tenancy):** Cada usuário possui seu próprio ambiente seguro.
-- **Gestão de Temas:** Criação e categorização de temas personalizados.
-- **Acervo de Sermões:** Notas ricas com suporte a texto longo, links de áudio e imagem.
-- **Referências Bíblicas:** Sistema de indexação de passagens bíblicas por nota.
-- **Autenticação JWT:** Segurança baseada em tokens para proteção de dados sensíveis.
+* **Isolamento de Dados (Multi-tenancy):** Cada usuário possui seu próprio ambiente seguro. Um pastor nunca acessa as notas de outro.
+* **Gestão de Temas:** Criação e categorização de temas personalizados (ex: Graça, Família, Escatologia).
+* **Acervo de Sermões:** Suporte a textos longos (Tipo `TEXT`), links de áudio e imagens.
+* **Referências Bíblicas:** Sistema de indexação de passagens bíblicas vinculadas a cada sermão.
+* **Segurança Avançada:** Autenticação via JWT com filtragem de contexto por usuário.
 
 ## 🏗 Arquitetura & Tecnologias
 
-- **Java 21** & **Spring Boot 3**
-- **Spring Security** com **JWT** para autenticação.
-- **Flyway** para versionamento de banco de dados.
-- **MySQL 8** como banco de dados relacional.
-- **Swagger/OpenAPI** para documentação interativa.
-- **Docker & Docker Compose** para orquestração de ambiente.
+* **Java 21** & **Spring Boot 3**
+* **Spring Security** com **JWT** para autenticação e autorização.
+* **Flyway** para versionamento e migração do banco de dados.
+* **MySQL 8** (executando via Docker).
+* **Swagger/OpenAPI 3** para documentação interativa e testes de endpoint.
+* **Lombok** para redução de boilerplate.
+* **Docker & Docker Compose** para orquestração completa do ambiente.
 
 ## 🚦 Como Executar
 
 ### Pré-requisitos
-- Docker & Docker Compose instalados.
-- Java 21 (para desenvolvimento local fora do container).
+* Docker & Docker Compose instalados.
+* Git.
 
 ### Passo a Passo
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/tiagosilva91/projetoTeste.git](https://github.com/tiagosilva91/projetoTeste.git)
-   cd projetoTeste
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/tiagosilva91/projetoTeste.git](https://github.com/tiagosilva91/projetoTeste.git)
+    cd projetoTeste
+    ```
+
+2.  **Suba os containers (API + Banco):**
+    ```bash
+    docker compose up -d --build
+    ```
+
+3.  **Acesse a documentação Interativa:**
+    Com os containers rodando, acesse o Swagger UI para testar os endpoints:
+    👉 [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+## 📖 Endpoints Principais
+
+| Categoria | Método | Endpoint | Descrição |
+| :--- | :--- | :--- | :--- |
+| **Auth** | POST | `/api/v1/auth/login` | Gera o Token JWT |
+| **Auth** | GET | `/api/v1/auth/me` | Retorna dados da sessão atual |
+| **Temas** | POST | `/api/v1/themes` | Cadastra um novo tema para o pastor |
+| **Temas** | GET | `/api/v1/themes` | Lista temas do usuário logado |
+| **Notas** | POST | `/api/v1/notes` | Salva um novo sermão/nota |
+| **Notas** | GET | `/api/v1/notes` | Lista todos os sermões do usuário |
+
+## 🔒 Segurança (CORS & JWT)
+
+A API já está configurada para aceitar requisições de front-ends modernos (React/Vite) através de uma configuração de CORS robusta. Para testar rotas protegidas no Swagger:
+
+1.  Faça login via `/auth/login`.
+2.  Copie o token gerado.
+3.  Clique no botão **Authorize** no topo do Swagger e cole o token.
+
+---
+Desenvolvido por [Tiago Silva](https://github.com/tiagosilva91) 🚀

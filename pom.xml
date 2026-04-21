@@ -9,10 +9,10 @@
         <version>3.2.5</version> <relativePath/>
     </parent>
 
-    <groupId>com.projetoTeste</groupId>
-    <artifactId>api-usuarios</artifactId>
+    <groupId>com.segundoCerebroApi</groupId>
+    <artifactId>segundoCerebroApi</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>api-usuarios</name>
+    <name>segundoCerebroApi</name>
     <description>Projeto Spring Boot 3 com Java 21 e MySQL</description>
 
     <properties>

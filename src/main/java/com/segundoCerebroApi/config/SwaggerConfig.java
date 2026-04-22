@@ -21,8 +21,8 @@ public class SwaggerConfig {
                                         .scheme("bearer")
                                         .bearerFormat("JWT")))
                 .info(new Info()
-                        .title("API de Usuários")
-                        .description("API REST para gestão de usuários e autenticação do Micro-SaaS.")
+                        .title("Segundo Cérebro API")
+                        .description("API REST para gestão de Notas Rápidas com Temas bíblicos utilizando o conceito do Micro-SaaS.")
                         .version("v1.0.0"))
                 .addSecurityItem(new SecurityRequirement().addList("bearer-key"));
     }

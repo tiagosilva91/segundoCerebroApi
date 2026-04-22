@@ -40,8 +40,8 @@ O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite ao
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/tiagosilva91/projetoTeste.git](https://github.com/tiagosilva91/projetoTeste.git)
-    cd projetoTeste
+    git clone [https://github.com/tiagosilva91/segundoCerebroApi.git](https://github.com/tiagosilva91/segundoCerebroApi.git)
+    cd segundoCerebroApi
     ```
 
 2.  **Suba os containers (API + Banco):**

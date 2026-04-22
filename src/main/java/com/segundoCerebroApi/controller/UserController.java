@@ -3,6 +3,7 @@ package com.segundoCerebroApi.controller;
 import com.segundoCerebroApi.dto.UserRequestDTO;
 import com.segundoCerebroApi.dto.UserResponseDTO;
 import com.segundoCerebroApi.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@Tag(name = "Users")
 public class UserController {
 
     private final UserService userService;

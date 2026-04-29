@@ -2,7 +2,7 @@
 CREATE TABLE themes (
     id BINARY(16) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    user_id BINARY(16) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_theme_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -14,7 +14,7 @@ CREATE TABLE notes (
     content TEXT NOT NULL,
     audio_url VARCHAR(255),
     image_url VARCHAR(255),
-    user_id BINARY(16) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_note_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

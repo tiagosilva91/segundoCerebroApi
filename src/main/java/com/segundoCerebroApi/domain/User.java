@@ -2,6 +2,8 @@ package com.segundoCerebroApi.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +23,8 @@ public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(length = 36)
     private UUID id;
 
     private String name;
@@ -33,7 +37,6 @@ public class User implements UserDetails {
 
     @Column(unique = true)
     private String cpf;
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

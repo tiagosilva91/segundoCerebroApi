@@ -24,6 +24,6 @@ public class Theme {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(36)")
     private User user;
 }

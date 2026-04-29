@@ -18,39 +18,30 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Note {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        private UUID id;
 
-    @Column(nullable = false)
-    private String title;
+        @Column(nullable = false)
+        private String title;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+        @Column(columnDefinition = "TEXT", nullable = false)
+        private String content;
 
-    private String audioUrl;
+        private String audioUrl;
 
-    private String imageUrl;
+        private String imageUrl;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "user_id", nullable = false, columnDefinition = "VARCHAR(36)") // <--- PROTEÇÃO EXTRA AQUI
+        private User user;
 
-    // Relacionamento Note <-> Theme
-    @ManyToMany
-    @JoinTable(
-            name = "note_themes",
-            joinColumns = @JoinColumn(name = "note_id"),
-            inverseJoinColumns = @JoinColumn(name = "theme_id")
-    )
-    private Set<Theme> themes;
+        @ManyToMany
+        @JoinTable(name = "note_themes", joinColumns = @JoinColumn(name = "note_id"), inverseJoinColumns = @JoinColumn(name = "theme_id"))
+        private Set<Theme> themes;
 
-    // Tabela auxiliar para referências bíblicas (ex: "João 3:16", "Salmos 23")
-    @ElementCollection
-    @CollectionTable(
-            name = "note_biblical_references",
-            joinColumns = @JoinColumn(name = "note_id")
-    )
-    @Column(name = "reference", nullable = false)
-    private List<String> biblicalReferences;
+        @ElementCollection
+        @CollectionTable(name = "note_biblical_references", joinColumns = @JoinColumn(name = "note_id"))
+        @Column(name = "reference", nullable = false)
+        private List<String> biblicalReferences;
 }

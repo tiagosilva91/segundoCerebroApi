@@ -1,10 +1,9 @@
 services:
   mysqldb:
     image: mysql:8.0
-    container_name: mysqldb
     restart: always
     environment:
-      MYSQL_DATABASE: projeto_db
+      MYSQL_DATABASE: segundocerebro_db
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
@@ -19,16 +18,15 @@ services:
 
   app:
     build: .
-    container_name: spring-app
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysqldb:3306/projeto_db
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_FLYWAY_ENABLED=true
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_THREADS_VIRTUAL_ENABLED=true
+      - MYSQLHOST=mysqldb
+      - MYSQLPORT=3306
+      - MYSQLDATABASE=segundocerebro_db
+      - MYSQLUSER=root
+      - MYSQLPASSWORD=root
+      - DDL_AUTO=update
       - JWT_SECRET=FrQuOQySCOJJhmn4OCFCpSKFbECJ0Fg6e9JmFlg4Ebo=
     depends_on:
       mysqldb:

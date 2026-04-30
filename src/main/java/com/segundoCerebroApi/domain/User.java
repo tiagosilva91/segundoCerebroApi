@@ -39,8 +39,11 @@ public class User implements UserDetails {
     private String cpf;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "plan_type", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'FREE'")
     private PlanType planType = PlanType.FREE;
 
+    @Column(name = "first_login")
     private Boolean firstLogin = true;
 
     @Override

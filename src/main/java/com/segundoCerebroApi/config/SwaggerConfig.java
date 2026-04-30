@@ -14,6 +14,7 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
+                .addServersItem(new io.swagger.v3.oas.models.servers.Server().url("/"))
                 .components(new Components()
                         .addSecuritySchemes("bearer-key",
                                 new SecurityScheme()

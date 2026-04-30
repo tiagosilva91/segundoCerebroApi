@@ -15,6 +15,8 @@ O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite ao
 ### 🛠 Funcionalidades Principais
 
 * **Isolamento de Dados (Multi-tenancy):** Cada usuário possui seu próprio ambiente seguro. Um pastor nunca acessa as notas de outro.
+* **Gestão de Planos (FREE & PRO):** Sistema de assinaturas com limites diferenciados para criação de notas (Plano FREE limitado a 10 notas).
+* **Fluxo de Onboarding:** Sistema de primeiro acesso com reset de senha obrigatório para maior segurança.
 * **Gestão de Temas:** Criação e categorização de temas personalizados (ex: Graça, Família, Escatologia).
 * **Acervo de Sermões:** Suporte a textos longos (Tipo `TEXT`), links de áudio e imagens.
 * **Referências Bíblicas:** Sistema de indexação de passagens bíblicas vinculadas a cada sermão.
@@ -25,10 +27,10 @@ O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite ao
 * **Java 21** & **Spring Boot 3**
 * **Spring Security** com **JWT** para autenticação e autorização.
 * **Flyway** para versionamento e migração do banco de dados.
-* **MySQL 8** (executando via Docker).
+* **MySQL 8** (executando via Docker ou Railway em PRD).
 * **Swagger/OpenAPI 3** para documentação interativa e testes de endpoint.
 * **Lombok** para redução de boilerplate.
-* **Docker & Docker Compose** para orquestração completa do ambiente.
+* **Docker & Docker Compose** para orquestração completa do ambiente local.
 
 ## 🚦 Como Executar
 
@@ -40,7 +42,7 @@ O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite ao
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/tiagosilva91/segundoCerebroApi.git](https://github.com/tiagosilva91/segundoCerebroApi.git)
+    git clone https://github.com/tiagosilva91/segundoCerebroApi.git
     cd segundoCerebroApi
     ```
 
@@ -51,22 +53,26 @@ O **Segundo Cérebro do Pregador** é uma solução de Micro-SaaS que permite ao
 
 3.  **Acesse a documentação Interativa:**
     Com os containers rodando, acesse o Swagger UI para testar os endpoints:
-    👉 [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+    👉 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
 ## 📖 Endpoints Principais
 
 | Categoria | Método | Endpoint | Descrição |
 | :--- | :--- | :--- | :--- |
-| **Auth** | POST | `/api/v1/auth/login` | Gera o Token JWT |
+| **Auth** | POST | `/api/v1/auth/login` | Gera o Token JWT e indica se é primeiro acesso |
+| **Auth** | POST | `/api/v1/auth/first-access-password` | Altera senha e finaliza onboarding |
 | **Auth** | GET | `/api/v1/auth/me` | Retorna dados da sessão atual |
 | **Temas** | POST | `/api/v1/themes` | Cadastra um novo tema para o pastor |
 | **Temas** | GET | `/api/v1/themes` | Lista temas do usuário logado |
-| **Notas** | POST | `/api/v1/notes` | Salva um novo sermão/nota |
+| **Notas** | POST | `/api/v1/notes` | Salva um novo sermão (valida limite do plano) |
 | **Notas** | GET | `/api/v1/notes` | Lista todos os sermões do usuário |
+| **Usuários** | POST | `/api/v1/users` | Criação de novos usuários (Admin) |
 
 ## 🔒 Segurança (CORS & JWT)
 
-A API já está configurada para aceitar requisições de front-ends modernos (React/Vite) através de uma configuração de CORS robusta. Para testar rotas protegidas no Swagger:
+A API já está configurada para aceitar requisições de front-ends modernos (React/Vite) através de uma configuração de CORS robusta. Em produção, a API suporta HTTPS via proxy reverso.
+
+Para testar rotas protegidas no Swagger:
 
 1.  Faça login via `/auth/login`.
 2.  Copie o token gerado.

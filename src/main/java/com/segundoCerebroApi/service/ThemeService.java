@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,9 +24,30 @@ public class ThemeService {
         return new ThemeResponseDTO(theme.getId(), theme.getName());
     }
 
+    @Transactional(readOnly = true)
     public List<ThemeResponseDTO> findAll(User user) {
         return repository.findAllByUser(user).stream()
                 .map(t -> new ThemeResponseDTO(t.getId(), t.getName()))
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ThemeResponseDTO findById(UUID id, User user) {
+        Theme theme = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tema não encontrado"));
+        if (!theme.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado");
+        }
+        return new ThemeResponseDTO(theme.getId(), theme.getName());
+    }
+
+    @Transactional
+    public void delete(UUID id, User user) {
+        Theme theme = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tema não encontrado"));
+        if (!theme.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado");
+        }
+        repository.delete(theme);
     }
 }

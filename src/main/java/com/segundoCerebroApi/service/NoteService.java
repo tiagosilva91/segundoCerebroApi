@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,10 +41,56 @@ public class NoteService {
         return mapToResponse(note);
     }
 
+    @Transactional(readOnly = true)
     public List<NoteResponseDTO> findAll(User user) {
         return noteRepository.findAllByUser(user).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public NoteResponseDTO findById(UUID id, User user) {
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
+
+        if (!note.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado");
+        }
+
+        return mapToResponse(note);
+    }
+
+    @Transactional
+    public NoteResponseDTO update(UUID id, NoteRequestDTO dto, User user) {
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
+
+        if (!note.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado");
+        }
+
+        Set<Theme> themes = new HashSet<>(themeRepository.findAllById(dto.themeIds()));
+
+        note.setTitle(dto.title());
+        note.setContent(dto.content());
+        note.setAudioUrl(dto.audioUrl());
+        note.setImageUrl(dto.imageUrl());
+        note.setBiblicalReferences(dto.biblicalReferences());
+        note.setThemes(themes);
+
+        return mapToResponse(noteRepository.save(note));
+    }
+
+    @Transactional
+    public void delete(UUID id, User user) {
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
+
+        if (!note.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Acesso negado");
+        }
+
+        noteRepository.delete(note);
     }
 
     private NoteResponseDTO mapToResponse(Note note) {

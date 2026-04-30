@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/themes")
@@ -29,5 +30,16 @@ public class ThemeController {
     @GetMapping
     public ResponseEntity<List<ThemeResponseDTO>> getAll(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(service.findAll(user));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ThemeResponseDTO> getById(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(service.findById(id, user));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        service.delete(id, user);
+        return ResponseEntity.noContent().build();
     }
 }

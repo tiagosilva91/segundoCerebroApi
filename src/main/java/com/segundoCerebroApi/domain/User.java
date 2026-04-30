@@ -43,12 +43,18 @@ public class User implements UserDetails {
     @Column(name = "plan_type", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'FREE'")
     private PlanType planType = PlanType.FREE;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "role", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'USER'")
+    private UserRole role = UserRole.USER;
+
     @Column(name = "first_login")
     private Boolean firstLogin = true;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        if (this.role == UserRole.ADMIN) return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER"));
+        else return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override

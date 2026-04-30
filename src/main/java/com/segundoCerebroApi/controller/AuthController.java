@@ -46,13 +46,7 @@ public class AuthController {
     @GetMapping("/me")
     @Operation(summary = "Busca dados da sessão", description = "Retorna os dados do usuário logado baseado no Token JWT")
     public ResponseEntity<UserResponseDTO> getMe(@AuthenticationPrincipal User user) {
-        UserResponseDTO response = new UserResponseDTO(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getBirthDate()
-        );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(UserResponseDTO.fromEntity(user));
     }
 
     @PostMapping("/first-access-password")

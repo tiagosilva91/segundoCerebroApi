@@ -71,4 +71,14 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado com o email: " + email));
     }
+
+    @Transactional
+    public void updatePasswordFirstAccess(UUID id, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado na base de dados"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setFirstLogin(false);
+        userRepository.save(user);
+    }
 }

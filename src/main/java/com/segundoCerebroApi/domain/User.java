@@ -38,6 +38,11 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String cpf;
 
+    @Enumerated(EnumType.STRING)
+    private PlanType planType = PlanType.FREE;
+
+    private Boolean firstLogin = true;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));

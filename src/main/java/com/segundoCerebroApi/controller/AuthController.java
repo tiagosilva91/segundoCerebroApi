@@ -1,6 +1,7 @@
 package com.segundoCerebroApi.controller;
 
 import com.segundoCerebroApi.domain.User;
+import com.segundoCerebroApi.dto.FirstAccessPasswordDTO;
 import com.segundoCerebroApi.dto.LoginRequestDTO;
 import com.segundoCerebroApi.dto.LoginResponseDTO;
 import com.segundoCerebroApi.dto.UserResponseDTO;
@@ -36,7 +37,7 @@ public class AuthController {
 
         if (passwordEncoder.matches(data.password(), user.getPassword())) {
             var token = tokenService.generateToken(user);
-            return ResponseEntity.ok(new LoginResponseDTO(token));
+            return ResponseEntity.ok(new LoginResponseDTO(token, user.getFirstLogin()));
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -52,5 +53,12 @@ public class AuthController {
                 user.getBirthDate()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/first-access-password")
+    @Operation(summary = "Altera a senha no primeiro acesso", description = "Altera a senha e finaliza o primeiro login")
+    public ResponseEntity<Void> updateFirstAccessPassword(@AuthenticationPrincipal User user, @RequestBody FirstAccessPasswordDTO data) {
+        userService.updatePasswordFirstAccess(user.getId(), data.password());
+        return ResponseEntity.ok().build();
     }
 }

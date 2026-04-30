@@ -10,5 +10,6 @@ public record NoteResponseDTO(
         String audioUrl,
         String imageUrl,
         List<String> biblicalReferences,
-        List<ThemeResponseDTO> themes
+        List<ThemeResponseDTO> themes,
+        String planMessage
 ) {}

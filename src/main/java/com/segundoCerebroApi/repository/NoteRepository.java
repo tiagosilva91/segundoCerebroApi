@@ -9,4 +9,5 @@ import java.util.UUID;
 
 public interface NoteRepository extends JpaRepository<Note, UUID> {
     List<Note> findAllByUser(User user);
+    long countByUser(User user);
 }

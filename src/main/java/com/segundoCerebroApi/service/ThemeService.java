@@ -4,6 +4,7 @@ import com.segundoCerebroApi.domain.Theme;
 import com.segundoCerebroApi.domain.User;
 import com.segundoCerebroApi.dto.ThemeRequestDTO;
 import com.segundoCerebroApi.dto.ThemeResponseDTO;
+import com.segundoCerebroApi.exception.UnauthorizedAccessException;
 import com.segundoCerebroApi.repository.ThemeRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,7 @@ public class ThemeService {
         Theme theme = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tema não encontrado"));
         if (!theme.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Acesso negado");
+            throw new UnauthorizedAccessException("Acesso negado: este tema pertence a outro usuário.");
         }
         return new ThemeResponseDTO(theme.getId(), theme.getName());
     }
@@ -46,7 +47,7 @@ public class ThemeService {
         Theme theme = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tema não encontrado"));
         if (!theme.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Acesso negado");
+            throw new UnauthorizedAccessException("Acesso negado: este tema pertence a outro usuário.");
         }
         repository.delete(theme);
     }

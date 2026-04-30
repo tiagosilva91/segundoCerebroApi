@@ -7,7 +7,9 @@ import com.segundoCerebroApi.domain.PlanType;
 import com.segundoCerebroApi.dto.NoteRequestDTO;
 import com.segundoCerebroApi.dto.NoteResponseDTO;
 import com.segundoCerebroApi.dto.ThemeResponseDTO;
+import com.segundoCerebroApi.exception.InvalidThemeException;
 import com.segundoCerebroApi.exception.PlanLimitExceededException;
+import com.segundoCerebroApi.exception.UnauthorizedAccessException;
 import com.segundoCerebroApi.repository.NoteRepository;
 import com.segundoCerebroApi.repository.ThemeRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +34,15 @@ public class NoteService {
             throw new PlanLimitExceededException("Você atingiu o limite de 5 notas do plano FREE.");
         }
 
-        // Busca os temas e garante que pertencem ao usuário (com proteção para lista nula/vazia)
-        Set<Theme> themes = (dto.themeIds() != null && !dto.themeIds().isEmpty())
-                ? new HashSet<>(themeRepository.findAllById(dto.themeIds()))
-                : new HashSet<>();
+        // Busca os temas e garante que pertencem ao usuário
+        Set<Theme> themes = new HashSet<>();
+        if (dto.themeIds() != null && !dto.themeIds().isEmpty()) {
+            List<Theme> foundThemes = themeRepository.findAllByIdInAndUser(dto.themeIds(), user);
+            if (foundThemes.size() != new HashSet<>(dto.themeIds()).size()) {
+                throw new InvalidThemeException("Um ou mais temas informados são inválidos ou inacessíveis.");
+            }
+            themes.addAll(foundThemes);
+        }
 
         Note note = new Note();
         note.setTitle(dto.title());
@@ -69,7 +76,7 @@ public class NoteService {
                 .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
 
         if (!note.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Acesso negado");
+            throw new UnauthorizedAccessException("Acesso negado: esta nota pertence a outro usuário.");
         }
 
         return mapToResponse(note, null);
@@ -81,10 +88,18 @@ public class NoteService {
                 .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
 
         if (!note.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Acesso negado");
+            throw new UnauthorizedAccessException("Acesso negado: esta nota pertence a outro usuário.");
         }
 
-        Set<Theme> themes = new HashSet<>(themeRepository.findAllById(dto.themeIds()));
+        // Busca os temas e garante que pertencem ao usuário
+        Set<Theme> themes = new HashSet<>();
+        if (dto.themeIds() != null && !dto.themeIds().isEmpty()) {
+            List<Theme> foundThemes = themeRepository.findAllByIdInAndUser(dto.themeIds(), user);
+            if (foundThemes.size() != new HashSet<>(dto.themeIds()).size()) {
+                throw new InvalidThemeException("Um ou mais temas informados são inválidos ou inacessíveis.");
+            }
+            themes.addAll(foundThemes);
+        }
 
         note.setTitle(dto.title());
         note.setContent(dto.content());
@@ -102,7 +117,7 @@ public class NoteService {
                 .orElseThrow(() -> new RuntimeException("Nota não encontrada"));
 
         if (!note.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Acesso negado");
+            throw new UnauthorizedAccessException("Acesso negado: esta nota pertence a outro usuário.");
         }
 
         noteRepository.delete(note);
@@ -113,7 +128,6 @@ public class NoteService {
                 note.getId(), note.getTitle(), note.getContent(),
                 note.getAudioUrl(), note.getImageUrl(), note.getBiblicalReferences(),
                 note.getThemes().stream().map(t -> new ThemeResponseDTO(t.getId(), t.getName())).toList(),
-                planMessage
-        );
+                planMessage);
     }
 }

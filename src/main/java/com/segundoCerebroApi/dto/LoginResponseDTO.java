@@ -1,4 +1,6 @@
 package com.segundoCerebroApi.dto;
 
-public record LoginResponseDTO(String token, boolean firstLogin) {
+import com.segundoCerebroApi.domain.PlanType;
+
+public record LoginResponseDTO(String token, boolean firstLogin, PlanType planType) {
 }

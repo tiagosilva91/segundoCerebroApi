@@ -1,5 +1,6 @@
 package com.segundoCerebroApi.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,5 +12,7 @@ public record NoteResponseDTO(
         String imageUrl,
         List<String> biblicalReferences,
         List<ThemeResponseDTO> themes,
-        String planMessage
+        String planMessage,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {}

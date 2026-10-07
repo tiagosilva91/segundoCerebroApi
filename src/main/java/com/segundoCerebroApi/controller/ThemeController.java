@@ -37,6 +37,11 @@ public class ThemeController {
         return ResponseEntity.ok(service.findById(id, user));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ThemeResponseDTO> update(@PathVariable UUID id, @RequestBody @Valid ThemeRequestDTO dto, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(service.update(id, dto, user));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal User user) {
         service.delete(id, user);

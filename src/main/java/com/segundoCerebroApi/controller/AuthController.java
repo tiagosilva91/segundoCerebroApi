@@ -1,18 +1,15 @@
 package com.segundoCerebroApi.controller;
 
 import com.segundoCerebroApi.domain.User;
-import com.segundoCerebroApi.dto.FirstAccessPasswordDTO;
-import com.segundoCerebroApi.dto.LoginRequestDTO;
-import com.segundoCerebroApi.dto.LoginResponseDTO;
-import com.segundoCerebroApi.dto.UserResponseDTO;
+import com.segundoCerebroApi.dto.*;
+import com.segundoCerebroApi.exception.InvalidCredentialsException;
+import com.segundoCerebroApi.repository.UserRepository;
 import com.segundoCerebroApi.security.TokenService;
-import com.segundoCerebroApi.service.UserService;
 import com.segundoCerebroApi.service.PasswordResetService;
-import com.segundoCerebroApi.dto.ForgotPasswordRequestDTO;
-import com.segundoCerebroApi.dto.ResetPasswordRequestDTO;
-import jakarta.validation.Valid;
+import com.segundoCerebroApi.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,12 +22,18 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserService userService;
+    private final UserRepository userRepository;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetService passwordResetService;
 
-    public AuthController(UserService userService, TokenService tokenService, PasswordEncoder passwordEncoder, PasswordResetService passwordResetService) {
+    public AuthController(UserService userService,
+                          UserRepository userRepository,
+                          TokenService tokenService,
+                          PasswordEncoder passwordEncoder,
+                          PasswordResetService passwordResetService) {
         this.userService = userService;
+        this.userRepository = userRepository;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
         this.passwordResetService = passwordResetService;
@@ -38,15 +41,19 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "Realiza o login", description = "Retorna um token JWT válido para o usuário")
-    public ResponseEntity login(@RequestBody LoginRequestDTO data) {
-        var user = userService.findByEmail(data.email());
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO data) {
+        var user = userRepository.findByEmail(data.email()).orElse(null);
 
-        if (passwordEncoder.matches(data.password(), user.getPassword())) {
-            var token = tokenService.generateToken(user);
-            return ResponseEntity.ok(new LoginResponseDTO(token, user.getFirstLogin()));
+        if (user == null || !passwordEncoder.matches(data.password(), user.getPassword())) {
+            throw new InvalidCredentialsException("E-mail ou senha inválidos.");
         }
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        var token = tokenService.generateToken(user);
+        return ResponseEntity.ok(new LoginResponseDTO(
+                token,
+                Boolean.TRUE.equals(user.getFirstLogin()),
+                user.getPlanType()
+        ));
     }
 
     @GetMapping("/me")
@@ -57,8 +64,20 @@ public class AuthController {
 
     @PostMapping("/first-access-password")
     @Operation(summary = "Altera a senha no primeiro acesso", description = "Altera a senha e finaliza o primeiro login")
-    public ResponseEntity<Void> updateFirstAccessPassword(@AuthenticationPrincipal User user, @RequestBody FirstAccessPasswordDTO data) {
+    public ResponseEntity<Void> updateFirstAccessPassword(@AuthenticationPrincipal User user,
+                                                          @RequestBody @Valid FirstAccessPasswordDTO data) {
         userService.updatePasswordFirstAccess(user.getId(), data.password());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Altera senha do usuário autenticado")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User user,
+                                               @RequestBody @Valid ChangePasswordDTO data) {
+        if (!passwordEncoder.matches(data.currentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Senha atual incorreta.");
+        }
+        userService.updatePasswordFirstAccess(user.getId(), data.newPassword());
         return ResponseEntity.ok().build();
     }
 
@@ -71,8 +90,19 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     @Operation(summary = "Redefine a senha", description = "Utiliza o token recebido por email para criar uma nova senha")
-    public ResponseEntity<String> resetPassword(@RequestBody @Valid ResetPasswordRequestDTO request) {
-        boolean success = passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+    public ResponseEntity<String> resetPassword(
+            @RequestParam(required = false) String token,
+            @RequestBody @Valid ResetPasswordRequestDTO request) {
+
+        String tokenToUse = (request.getToken() != null && !request.getToken().isBlank())
+                ? request.getToken()
+                : token;
+
+        if (tokenToUse == null || tokenToUse.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token não informado.");
+        }
+
+        boolean success = passwordResetService.resetPassword(tokenToUse, request.getNewPassword());
         if (success) {
             return ResponseEntity.ok("Senha redefinida com sucesso.");
         }

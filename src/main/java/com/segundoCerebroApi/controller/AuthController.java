@@ -7,6 +7,10 @@ import com.segundoCerebroApi.dto.LoginResponseDTO;
 import com.segundoCerebroApi.dto.UserResponseDTO;
 import com.segundoCerebroApi.security.TokenService;
 import com.segundoCerebroApi.service.UserService;
+import com.segundoCerebroApi.service.PasswordResetService;
+import com.segundoCerebroApi.dto.ForgotPasswordRequestDTO;
+import com.segundoCerebroApi.dto.ResetPasswordRequestDTO;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -23,11 +27,13 @@ public class AuthController {
     private final UserService userService;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(UserService userService, TokenService tokenService, PasswordEncoder passwordEncoder) {
+    public AuthController(UserService userService, TokenService tokenService, PasswordEncoder passwordEncoder, PasswordResetService passwordResetService) {
         this.userService = userService;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/login")
@@ -54,5 +60,22 @@ public class AuthController {
     public ResponseEntity<Void> updateFirstAccessPassword(@AuthenticationPrincipal User user, @RequestBody FirstAccessPasswordDTO data) {
         userService.updatePasswordFirstAccess(user.getId(), data.password());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Solicita recuperação de senha", description = "Gera um token de recuperação e envia por email")
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDTO request) {
+        passwordResetService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Redefine a senha", description = "Utiliza o token recebido por email para criar uma nova senha")
+    public ResponseEntity<String> resetPassword(@RequestBody @Valid ResetPasswordRequestDTO request) {
+        boolean success = passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        if (success) {
+            return ResponseEntity.ok("Senha redefinida com sucesso.");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token inválido ou expirado.");
     }
 }

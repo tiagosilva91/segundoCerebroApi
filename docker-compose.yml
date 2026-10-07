@@ -28,6 +28,10 @@ services:
       - MYSQLPASSWORD=root
       - DDL_AUTO=update
       - JWT_SECRET=FrQuOQySCOJJhmn4OCFCpSKFbECJ0Fg6e9JmFlg4Ebo=
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=tiagofef@gmail.com
+      - SMTP_PASSWORD=ipgswyemxlucjyyz
     depends_on:
       mysqldb:
         condition: service_healthy

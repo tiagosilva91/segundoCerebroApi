@@ -3,11 +3,24 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_DATABASE: segundocerebro_db
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQLDATABASE:-segundocerebro_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQLPASSWORD:-root}
+      # Alinha a colacao do servidor com a que as migrations assumem (V1 cria
+      # "users" com utf8mb4 -> utf8mb4_0900_ai_ci). Sem isso, um datadir criado
+      # com outra colacao quebra as FKs VARCHAR de V2.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
     ports:
       - "3306:3306"
     volumes:
+      # ATENCAO: este datadir foi inicializado por outro projeto (contem "projeto_db").
+      # MYSQL_DATABASE so e honrado em datadir vazio, por isso "segundocerebro_db"
+      # nunca era criado aqui — ver createDatabaseIfNotExist=true na URL JDBC.
+      # Para migrar para um volume nomeado exclusivo sem perder dados:
+      #   docker compose exec mysqldb mysqldump -uroot -proot segundocerebro_db > dump.sql
+      #   (trocar por "- segundocerebro_mysql:/var/lib/mysql" e declarar em volumes:)
+      #   docker compose exec -T mysqldb mysql -uroot -proot segundocerebro_db < dump.sql
       - ./mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
@@ -20,18 +33,12 @@ services:
     build: .
     ports:
       - "8080:8080"
+    # Todos os segredos vem do .env (fora do versionamento). Ver .env.example.
+    env_file:
+      - .env
     environment:
       - MYSQLHOST=mysqldb
       - MYSQLPORT=3306
-      - MYSQLDATABASE=segundocerebro_db
-      - MYSQLUSER=root
-      - MYSQLPASSWORD=root
-      - DDL_AUTO=update
-      - JWT_SECRET=FrQuOQySCOJJhmn4OCFCpSKFbECJ0Fg6e9JmFlg4Ebo=
-      - SMTP_HOST=smtp.gmail.com
-      - SMTP_PORT=587
-      - SMTP_USERNAME=tiagofef@gmail.com
-      - SMTP_PASSWORD=ipgswyemxlucjyyz
     depends_on:
       mysqldb:
         condition: service_healthy

@@ -21,5 +21,10 @@ public record AppProperties(
 
     public record Bible(String baseUrl, String defaultTranslation) {}
 
-    public record Payment(String provider, long proPriceCents, String webhookSecret) {}
+    public record Payment(
+            String provider,
+            long proPriceCents,
+            String webhookSecret,
+            boolean allowSimulatedUpgrade
+    ) {}
 }

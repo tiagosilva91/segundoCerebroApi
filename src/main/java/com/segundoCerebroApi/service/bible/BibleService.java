@@ -20,6 +20,9 @@ public class BibleService {
 
     private static final int MAX_SEARCH_RESULTS = 50;
 
+    /** Quantos resultados pedir ao provedor por resultado exibido, já que filtramos. */
+    private static final int FETCH_MULTIPLIER = 5;
+
     private final BollsBibleClient client;
     private final String defaultTranslation;
 
@@ -94,9 +97,18 @@ public class BibleService {
             throw new IllegalArgumentException("Digite ao menos 3 caracteres para pesquisar.");
         }
         String tr = resolveTranslation(translation);
+        String termo = query.trim();
         int safeLimit = Math.max(1, Math.min(limit, MAX_SEARCH_RESULTS));
 
-        return client.search(tr, query.trim(), safeLimit).results().stream()
+        // O provedor faz match por similaridade: "sermao" devolvia "Seraías", "Sarai"
+        // e "Sem, Arfaxade, Selá". Por isso pedimos mais resultados do que vamos
+        // mostrar e filtramos pelos que de fato contêm os termos buscados.
+        int fetchLimit = Math.min(safeLimit * FETCH_MULTIPLIER, MAX_SEARCH_RESULTS);
+
+        List<String> termos = termosDe(termo);
+        String frase = normalizar(termo);
+
+        return client.search(tr, termo, fetchLimit).results().stream()
                 .filter(v -> v.book() != null && v.chapter() != null)
                 .map(v -> {
                     BibleCatalog.Book b = BibleCatalog.findById(v.book()).orElse(null);
@@ -106,7 +118,40 @@ public class BibleService {
                             b.id(), b.name(), v.chapter(), v.verse(), clean(v.text()), tr);
                 })
                 .filter(java.util.Objects::nonNull)
+                .filter(r -> contemTodosOsTermos(r.text(), termos))
+                // Quem traz a frase inteira aparece antes de quem só traz os termos soltos.
+                .sorted(java.util.Comparator.comparingInt(
+                        (SearchResultDTO r) -> normalizar(r.text()).contains(frase) ? 0 : 1))
+                .limit(safeLimit)
                 .toList();
+    }
+
+    /**
+     * Remove acentuação e caixa para comparar "sermão" com "sermao".
+     */
+    private static String normalizar(String texto) {
+        if (texto == null) return "";
+        return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * Termos relevantes da busca. Palavras com menos de 3 letras (preposições,
+     * artigos) são descartadas: elas aparecem em quase todo versículo e não
+     * ajudam a decidir relevância.
+     */
+    private static List<String> termosDe(String query) {
+        List<String> termos = java.util.Arrays.stream(normalizar(query).split("\\s+"))
+                .filter(t -> t.length() >= 3)
+                .toList();
+        // Busca só com palavras curtas ("fé", "pai"): usa o termo inteiro.
+        return termos.isEmpty() ? List.of(normalizar(query)) : termos;
+    }
+
+    private static boolean contemTodosOsTermos(String texto, List<String> termos) {
+        String normalizado = normalizar(texto);
+        return termos.stream().allMatch(normalizado::contains);
     }
 
     // ─── helpers ──────────────────────────────────────────────────────

@@ -3,11 +3,11 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_DATABASE: ${MYSQLDATABASE:-segundocerebro_db}
-      MYSQL_ROOT_PASSWORD: ${MYSQLPASSWORD:-root}
-      # Alinha a colacao do servidor com a que as migrations assumem (V1 cria
-      # "users" com utf8mb4 -> utf8mb4_0900_ai_ci). Sem isso, um datadir criado
-      # com outra colacao quebra as FKs VARCHAR de V2.
+      MYSQL_DATABASE: segundocerebro_db
+      MYSQL_ROOT_PASSWORD: root
+    # Alinha a colacao do servidor com a que as migrations assumem (V1 cria
+    # "users" com utf8mb4 -> utf8mb4_0900_ai_ci). Sem isso, um datadir criado
+    # com outra colacao quebra as FKs VARCHAR de V2.
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
@@ -16,7 +16,7 @@ services:
     volumes:
       # ATENCAO: este datadir foi inicializado por outro projeto (contem "projeto_db").
       # MYSQL_DATABASE so e honrado em datadir vazio, por isso "segundocerebro_db"
-      # nunca era criado aqui — ver createDatabaseIfNotExist=true na URL JDBC.
+      # nunca era criado aqui - ver createDatabaseIfNotExist=true na URL JDBC.
       # Para migrar para um volume nomeado exclusivo sem perder dados:
       #   docker compose exec mysqldb mysqldump -uroot -proot segundocerebro_db > dump.sql
       #   (trocar por "- segundocerebro_mysql:/var/lib/mysql" e declarar em volumes:)
@@ -33,12 +33,18 @@ services:
     build: .
     ports:
       - "8080:8080"
-    # Todos os segredos vem do .env (fora do versionamento). Ver .env.example.
-    env_file:
-      - .env
+    # Toda a configuracao vive em application.properties, com defaults de
+    # desenvolvimento. Aqui ficam apenas os overrides necessarios para rodar em
+    # container, e nenhum segredo: em producao, JWT_SECRET e SMTP_PASSWORD vem
+    # das variaveis de ambiente do proprio ambiente de deploy.
     environment:
       - MYSQLHOST=mysqldb
       - MYSQLPORT=3306
+      # Libera POST /api/v1/payment/simulate-upgrade, usado pelo botao
+      # "Simular PRO (Dev)" da tela de configuracoes. NUNCA true em producao.
+      - PAYMENT_ALLOW_SIMULATED_UPGRADE=true
+      # Swagger acessivel sem autenticacao em desenvolvimento.
+      - API_DOCS_PUBLIC=true
     depends_on:
       mysqldb:
         condition: service_healthy

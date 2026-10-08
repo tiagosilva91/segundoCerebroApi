@@ -3,6 +3,7 @@ package com.segundoCerebroApi.service;
 import com.segundoCerebroApi.domain.User;
 import com.segundoCerebroApi.dto.UserRequestDTO;
 import com.segundoCerebroApi.dto.UserResponseDTO;
+import com.segundoCerebroApi.exception.DuplicateResourceException;
 import com.segundoCerebroApi.exception.UserNotFoundException;
 import com.segundoCerebroApi.repository.UserRepository;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +26,16 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO create(UserRequestDTO dto) {
+        // Checagem antecipada para devolver 409 com a mensagem do campo em conflito.
+        // Sem isso, a violação de unique estourava como DataIntegrityViolationException
+        // e o cliente recebia um 500 genérico.
+        if (userRepository.existsByEmail(dto.email())) {
+            throw new DuplicateResourceException("Este e-mail já está cadastrado.");
+        }
+        if (userRepository.existsByCpf(dto.cpf())) {
+            throw new DuplicateResourceException("Este CPF já está cadastrado.");
+        }
+
         User user = new User();
         BeanUtils.copyProperties(dto, user);
 
@@ -55,7 +66,21 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado na base de dados"));
 
-        BeanUtils.copyProperties(dto, user, "id"); // "id" é ignorado para não sobrescrever
+        if (!user.getEmail().equals(dto.email()) && userRepository.existsByEmail(dto.email())) {
+            throw new DuplicateResourceException("Este e-mail já está cadastrado.");
+        }
+        if (!user.getCpf().equals(dto.cpf()) && userRepository.existsByCpf(dto.cpf())) {
+            throw new DuplicateResourceException("Este CPF já está cadastrado.");
+        }
+
+        // "password" é ignorado aqui de propósito: copiar o campo do DTO gravava a
+        // senha em texto puro, invalidando o login. O hash é aplicado em seguida.
+        BeanUtils.copyProperties(dto, user, "id", "password");
+
+        if (dto.password() != null && !dto.password().isBlank()) {
+            user.setPassword(passwordEncoder.encode(dto.password()));
+        }
+
         return UserResponseDTO.fromEntity(userRepository.save(user));
     }
 

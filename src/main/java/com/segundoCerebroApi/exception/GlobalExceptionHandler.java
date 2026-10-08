@@ -1,5 +1,8 @@
 package com.segundoCerebroApi.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,6 +16,8 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message) {
         return ResponseEntity.status(status)
@@ -42,6 +47,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedAccessException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedAccess(UnauthorizedAccessException ex) {
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
+     * Rede de segurança para violações de unicidade que escapem da checagem prévia
+     * (ex.: dois cadastros simultâneos com o mesmo e-mail). Antes disso, a exceção
+     * subia até o Tomcat e o cliente recebia 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String cause = ex.getMostSpecificCause().getMessage();
+        String message = "Registro já existente.";
+
+        if (cause != null) {
+            String lower = cause.toLowerCase();
+            if (lower.contains("email")) {
+                message = "Este e-mail já está cadastrado.";
+            } else if (lower.contains("cpf")) {
+                message = "Este CPF já está cadastrado.";
+            }
+        }
+
+        log.warn("Violação de integridade: {}", cause);
+        return build(HttpStatus.CONFLICT, message);
     }
 
     @ExceptionHandler(InvalidThemeException.class)

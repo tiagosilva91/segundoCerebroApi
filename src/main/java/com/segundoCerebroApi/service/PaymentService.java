@@ -7,12 +7,15 @@ import com.segundoCerebroApi.dto.CheckoutResponseDTO;
 import com.segundoCerebroApi.dto.PaymentWebhookDTO;
 import com.segundoCerebroApi.dto.UserResponseDTO;
 import com.segundoCerebroApi.exception.ResourceNotFoundException;
+import com.segundoCerebroApi.exception.UnauthorizedAccessException;
 import com.segundoCerebroApi.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.UUID;
 
 @Service
@@ -54,9 +57,17 @@ public class PaymentService {
 
     /**
      * Ativa plano PRO via webhook.
+     *
+     * <p>A rota é pública (o gateway não carrega JWT), portanto a autenticidade vem
+     * do segredo compartilhado. Sem essa verificação, qualquer requisição anônima
+     * poderia promover qualquer e-mail para PRO.</p>
+     *
+     * @param signature valor do header {@code X-Webhook-Secret} enviado pelo gateway
      */
     @Transactional
-    public void processWebhook(PaymentWebhookDTO dto) {
+    public void processWebhook(PaymentWebhookDTO dto, String signature) {
+        verifyWebhookSignature(signature);
+
         if (dto.userEmail() == null || dto.userEmail().isBlank()) {
             throw new IllegalArgumentException("userEmail é obrigatório no webhook.");
         }
@@ -72,10 +83,40 @@ public class PaymentService {
     }
 
     /**
+     * Rejeita o webhook quando o segredo não confere. Falha fechada: se o segredo
+     * não estiver configurado, nenhuma requisição é aceita.
+     */
+    private void verifyWebhookSignature(String signature) {
+        String expected = props.payment() != null ? props.payment().webhookSecret() : null;
+
+        if (expected == null || expected.isBlank()) {
+            log.warn("Webhook recebido mas app.payment.webhook-secret não está configurado — rejeitado.");
+            throw new UnauthorizedAccessException("Webhook não configurado.");
+        }
+
+        byte[] a = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] b = signature == null ? new byte[0] : signature.getBytes(StandardCharsets.UTF_8);
+
+        if (!MessageDigest.isEqual(a, b)) {
+            log.warn("Webhook rejeitado: assinatura inválida.");
+            throw new UnauthorizedAccessException("Assinatura de webhook inválida.");
+        }
+    }
+
+    /**
      * Simula a ativação imediata do plano PRO (ideal para desenvolvimento/testes locais).
+     *
+     * <p>Protegido por {@code app.payment.allow-simulated-upgrade}, que é {@code false}
+     * por default. Sem esse gate, qualquer usuário autenticado se promovia a PRO.</p>
      */
     @Transactional
     public UserResponseDTO simulateUpgrade(User user) {
+        boolean allowed = props.payment() != null && props.payment().allowSimulatedUpgrade();
+        if (!allowed) {
+            throw new UnauthorizedAccessException(
+                    "Upgrade simulado está desabilitado neste ambiente.");
+        }
+
         User managedUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
         managedUser.setPlanType(PlanType.PRO);

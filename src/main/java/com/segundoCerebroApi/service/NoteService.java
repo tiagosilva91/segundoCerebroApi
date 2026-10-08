@@ -36,7 +36,11 @@ public class NoteService {
         Note note = new Note();
         apply(note, dto, user);
         note.setUser(user);
-        note = noteRepository.save(note);
+        // saveAndFlush, nao save: @CreationTimestamp/@UpdateTimestamp so sao
+        // preenchidos no flush, que por padrao acontece no commit -- depois de
+        // mapToResponse. Por isso o POST devolvia createdAt/updatedAt nulos
+        // enquanto o GET seguinte trazia as datas corretas.
+        note = noteRepository.saveAndFlush(note);
 
         String planMessage = planService.lastItemWarning(user, count, planService.noteLimit(user), "nota");
         return mapToResponse(note, planMessage);
@@ -58,7 +62,8 @@ public class NoteService {
     public NoteResponseDTO update(UUID id, NoteRequestDTO dto, User user) {
         Note note = findOwned(id, user);
         apply(note, dto, user);
-        return mapToResponse(noteRepository.save(note), null);
+        // Mesmo motivo do create: sem o flush, updatedAt volta com o valor antigo.
+        return mapToResponse(noteRepository.saveAndFlush(note), null);
     }
 
     @Transactional
@@ -88,13 +93,34 @@ public class NoteService {
 
     /** Copia os campos do DTO para a entidade, validando que os temas pertencem ao usuário. */
     private void apply(Note note, NoteRequestDTO dto, User user) {
-        note.setTitle(dto.title());
-        note.setContent(dto.content());
+        note.setTitle(desescapar(dto.title()));
+        note.setContent(desescapar(dto.content()));
         note.setAudioUrl(dto.audioUrl());
         note.setImageUrl(dto.imageUrl());
         note.setBiblicalReferences(dto.biblicalReferences() == null
                 ? new ArrayList<>() : new ArrayList<>(dto.biblicalReferences()));
         note.setThemes(resolveThemes(dto.themeIds(), user));
+    }
+
+    /**
+     * Converte entidades HTML que chegam coladas de páginas web para o caractere
+     * correspondente. Notas coladas do navegador vinham com {@code &gt;} no lugar
+     * de {@code >}, quebrando citações em markdown logo na primeira linha.
+     *
+     * <p>A aplicação nunca armazena HTML — o conteúdo é tratado como texto —, então
+     * não há perda: o que o usuário digita literalmente como "&amp;gt;" é raro o
+     * bastante para não justificar manter o artefato de colagem em todas as notas.</p>
+     */
+    private static String desescapar(String texto) {
+        if (texto == null || texto.indexOf('&') < 0) return texto;
+        return texto
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&nbsp;", " ")
+                // &amp; por último: senão "&amp;lt;" viraria "<" em vez de "&lt;"
+                .replace("&amp;", "&");
     }
 
     private Set<Theme> resolveThemes(List<UUID> themeIds, User user) {

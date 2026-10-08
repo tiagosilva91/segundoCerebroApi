@@ -32,8 +32,10 @@ public class PaymentController {
     @PostMapping("/webhook")
     @Operation(summary = "Webhook do gateway de pagamento",
             description = "Recebe notificações de pagamento e atualiza o plano do usuário")
-    public ResponseEntity<Void> webhook(@RequestBody PaymentWebhookDTO payload) {
-        paymentService.processWebhook(payload);
+    public ResponseEntity<Void> webhook(
+            @RequestBody PaymentWebhookDTO payload,
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String signature) {
+        paymentService.processWebhook(payload, signature);
         return ResponseEntity.ok().build();
     }
 

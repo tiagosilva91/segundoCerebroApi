@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -108,5 +110,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ExternalServiceException.class)
     public ResponseEntity<ErrorResponse> handleExternalService(ExternalServiceException ex) {
         return build(HttpStatus.BAD_GATEWAY, ex.getMessage());
+    }
+
+    /**
+     * Repassa as exceções do Spring Security para o {@code ExceptionTranslationFilter},
+     * que as converte em 401/403 via {@code RestAuthenticationHandlers}. Sem este
+     * método, o catch-all abaixo as capturaria e devolveria 500 no lugar.
+     */
+    @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class})
+    public void handleSpringSecurity(RuntimeException ex) {
+        throw ex;
+    }
+
+    /**
+     * Rede final: qualquer falha não prevista vira 500 no formato ErrorResponse,
+     * sem expor a mensagem interna. Antes, essas exceções subiam até o Tomcat e o
+     * cliente recebia o corpo padrão do Spring, com o path da requisição.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
+        log.error("Erro não tratado", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Erro interno. Tente novamente em instantes.");
     }
 }

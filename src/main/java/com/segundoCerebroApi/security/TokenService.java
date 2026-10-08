@@ -8,12 +8,14 @@ import com.segundoCerebroApi.domain.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 @Service
 public class TokenService {
+
+    /** Validade do token de acesso. Exposta para o cliente alinhar o cookie. */
+    public static final Duration TOKEN_VALIDITY = Duration.ofHours(2);
 
     @Value("${api.security.token.secret}")
     private String secret;
@@ -53,10 +55,18 @@ public class TokenService {
     }
 
     /**
-     * Define o tempo de expiração do token (2 horas a partir de agora).
-     * Ajustado para o fuso horário de Brasília (-03:00).
+     * Define o tempo de expiração do token.
+     *
+     * <p>A versão anterior fazia {@code LocalDateTime.now().plusMinutes(30)
+     * .toInstant(ZoneOffset.of("-03:00"))}: lia o relógio no fuso do servidor e
+     * depois reinterpretava aquele horário como -03:00, somando 3 horas
+     * artificiais. No container (UTC) o token durava ~3h30; numa máquina em -03,
+     * 30 minutos. A validade mudava conforme o ambiente.</p>
+     *
+     * <p>{@link Instant} já é um ponto absoluto na linha do tempo, então não há
+     * fuso envolvido.</p>
      */
     private Instant genExpirationDate() {
-        return LocalDateTime.now().plusMinutes(30).toInstant(ZoneOffset.of("-03:00"));
+        return Instant.now().plus(TOKEN_VALIDITY);
     }
 }

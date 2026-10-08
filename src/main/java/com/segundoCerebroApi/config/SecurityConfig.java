@@ -1,5 +1,6 @@
 package com.segundoCerebroApi.config;
 
+import com.segundoCerebroApi.security.RestAuthenticationHandlers;
 import com.segundoCerebroApi.security.SecurityFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,9 +25,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final SecurityFilter securityFilter;
+    private final RestAuthenticationHandlers authHandlers;
 
-    public SecurityConfig(SecurityFilter securityFilter) {
+    public SecurityConfig(SecurityFilter securityFilter, RestAuthenticationHandlers authHandlers) {
         this.securityFilter = securityFilter;
+        this.authHandlers = authHandlers;
     }
 
     @Bean
@@ -44,6 +47,13 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
+                )
+                // 401 para sessao ausente/expirada e 403 para falta de permissao,
+                // ambos no formato ErrorResponse. O default do Spring devolvia 403
+                // nos dois casos, impedindo o cliente de disparar logout automatico.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authHandlers)
+                        .accessDeniedHandler(authHandlers)
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

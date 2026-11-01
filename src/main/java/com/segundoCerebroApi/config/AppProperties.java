@@ -13,7 +13,14 @@ public record AppProperties(
         Bible bible,
         Payment payment
 ) {
-    public record Mail(String from) {}
+    /**
+     * @param from remetente dos e-mails transacionais.
+     * @param logResetTokenOnFailure imprime no log o token de recuperação quando
+     *        o envio por SMTP falha. É conveniência de desenvolvimento e precisa
+     *        continuar desligada em qualquer ambiente publicado: o token vale uma
+     *        hora e redefine a senha, então quem lê o log assume a conta.
+     */
+    public record Mail(String from, boolean logResetTokenOnFailure) {}
 
     public record Plan(Limits free) {
         public record Limits(int maxNotes, int maxThemes) {}

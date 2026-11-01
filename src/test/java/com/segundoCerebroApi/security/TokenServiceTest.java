@@ -1,6 +1,7 @@
 package com.segundoCerebroApi.security;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.segundoCerebroApi.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,9 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class TokenServiceTest {
 
+    private static final String SEGREDO = "segredo-de-teste";
+
     private TokenService novoService() {
         TokenService service = new TokenService();
-        ReflectionTestUtils.setField(service, "secret", "segredo-de-teste");
+        ReflectionTestUtils.setField(service, "secret", SEGREDO);
         return service;
     }
 
@@ -53,7 +56,31 @@ class TokenServiceTest {
         TokenService service = novoService();
         String token = service.generateToken(usuario());
 
-        assertThat(service.validateToken(token)).isEqualTo("pastor@exemplo.com");
+        assertThat(service.validateToken(token)).contains("pastor@exemplo.com");
+    }
+
+    @Test
+    @DisplayName("token expirado nao valida (nao pode virar subject vazio)")
+    void tokenExpirado() {
+        TokenService service = novoService();
+        String expirado = JWT.create()
+                .withIssuer("auth-api")
+                .withSubject("pastor@exemplo.com")
+                .withExpiresAt(Instant.now().minusSeconds(60))
+                .sign(Algorithm.HMAC256(SEGREDO));
+
+        assertThat(service.validateToken(expirado)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("token sem subject nao valida")
+    void tokenSemSubject() {
+        String semSubject = JWT.create()
+                .withIssuer("auth-api")
+                .withExpiresAt(Instant.now().plusSeconds(3600))
+                .sign(Algorithm.HMAC256(SEGREDO));
+
+        assertThat(novoService().validateToken(semSubject)).isEmpty();
     }
 
     @Test

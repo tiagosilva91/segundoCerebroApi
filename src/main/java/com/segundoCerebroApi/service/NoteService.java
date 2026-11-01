@@ -11,6 +11,7 @@ import com.segundoCerebroApi.exception.ResourceNotFoundException;
 import com.segundoCerebroApi.exception.UnauthorizedAccessException;
 import com.segundoCerebroApi.repository.NoteRepository;
 import com.segundoCerebroApi.repository.ThemeRepository;
+import com.segundoCerebroApi.service.bible.BibleReferences;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -42,7 +44,8 @@ public class NoteService {
         // enquanto o GET seguinte trazia as datas corretas.
         note = noteRepository.saveAndFlush(note);
 
-        String planMessage = planService.lastItemWarning(user, count, planService.noteLimit(user), "nota");
+        String planMessage = planService.lastItemWarning(
+                user, count, planService.noteLimit(user), "Esta foi a sua última nota");
         return mapToResponse(note, planMessage);
     }
 
@@ -97,8 +100,7 @@ public class NoteService {
         note.setContent(desescapar(dto.content()));
         note.setAudioUrl(dto.audioUrl());
         note.setImageUrl(dto.imageUrl());
-        note.setBiblicalReferences(dto.biblicalReferences() == null
-                ? new ArrayList<>() : new ArrayList<>(dto.biblicalReferences()));
+        note.setBiblicalReferences(normalizarReferencias(dto.biblicalReferences()));
         note.setThemes(resolveThemes(dto.themeIds(), user));
     }
 
@@ -121,6 +123,20 @@ public class NoteService {
                 .replace("&nbsp;", " ")
                 // &amp; por último: senão "&amp;lt;" viraria "<" em vez de "&lt;"
                 .replace("&amp;", "&");
+    }
+
+    /**
+     * Confere cada referência contra o catálogo e grava na forma canônica.
+     * Duplicatas ("jo 3.16" e "João 3:16" na mesma nota) colapsam numa só.
+     */
+    private static List<String> normalizarReferencias(List<String> referencias) {
+        if (referencias == null || referencias.isEmpty()) return new ArrayList<>();
+
+        LinkedHashSet<String> unicas = new LinkedHashSet<>();
+        for (String referencia : referencias) {
+            unicas.add(BibleReferences.normalizar(referencia));
+        }
+        return new ArrayList<>(unicas);
     }
 
     private Set<Theme> resolveThemes(List<UUID> themeIds, User user) {

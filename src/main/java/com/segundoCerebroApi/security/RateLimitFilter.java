@@ -91,31 +91,56 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Cache<String, AtomicInteger> cache;
         int max;
         String what;
+        boolean somenteFalhas;
 
         if (LOGIN_PATH.equals(path)) {
             cache = loginAttempts;
             max = loginMaxAttempts;
             what = "login";
+            somenteFalhas = true;
         } else if (FORGOT_PATH.equals(path)) {
             cache = forgotAttempts;
             max = forgotMaxAttempts;
             what = "recuperação de senha";
+            somenteFalhas = false;
         } else {
             filterChain.doFilter(request, response);
             return;
         }
 
         String client = clientIp(request);
-        int count = cache.get(client, k -> new AtomicInteger()).incrementAndGet();
+        AtomicInteger attempts = cache.get(client, k -> new AtomicInteger());
 
-        if (count > max) {
-            log.warn("Rate limit atingido em {} para o IP {} ({} tentativas)", path, client, count);
+        if (attempts.get() >= max) {
+            log.warn("Rate limit atingido em {} para o IP {} ({} tentativas)",
+                    path, client, attempts.get());
             tooManyRequests(response,
                     "Muitas tentativas de " + what + ". Aguarde alguns minutos e tente novamente.");
             return;
         }
 
         filterChain.doFilter(request, response);
+
+        if (contaTentativa(somenteFalhas, response.getStatus())) {
+            attempts.incrementAndGet();
+        }
+    }
+
+    /**
+     * Decide se a requisição recém-atendida consome cota.
+     *
+     * <p>No login, só tentativa malsucedida conta. Antes o contador subia antes
+     * de conhecer o resultado, então acesso legítimo também gastava cota: dez
+     * logins em cinco minutos — um escritório atrás de um NAT, por exemplo —
+     * travavam todo mundo, e nem a senha correta passava.</p>
+     *
+     * <p>Em /forgot-password a regra é a oposta: ele responde 200 mesmo para
+     * e-mail inexistente, de propósito, para não permitir enumeração de contas.
+     * Como sucesso e falha são indistinguíveis — e o abuso é justamente o envio
+     * em si, que vira spam pelo SMTP da aplicação —, toda requisição conta.</p>
+     */
+    private static boolean contaTentativa(boolean somenteFalhas, int status) {
+        return !somenteFalhas || status >= 400;
     }
 
     /**

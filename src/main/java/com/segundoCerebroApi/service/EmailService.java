@@ -45,7 +45,16 @@ public class EmailService {
             mailSender.send(message);
             log.info("E-mail de recuperação de senha enviado com sucesso para: {}", toEmail);
         } catch (Exception e) {
-            log.warn("Não foi possível enviar e-mail via SMTP ({}), mas o token gerado para testes é: {}", e.getMessage(), token);
+            // O token NUNCA vai para o log por padrão: ele vale uma hora e
+            // redefine a senha da conta, então registrá-lo equivale a publicar
+            // uma credencial — justamente no cenário (SMTP quebrado) mais
+            // provável em produção. Só sai com app.mail.log-reset-token-on-failure
+            // explicitamente ligado, para depuração local.
+            log.warn("Não foi possível enviar e-mail de recuperação para {}: {}", toEmail, e.getMessage());
+
+            if (props.mail() != null && props.mail().logResetTokenOnFailure()) {
+                log.warn("[DEV] Token de recuperação de {}: {}", toEmail, token);
+            }
         }
     }
 }

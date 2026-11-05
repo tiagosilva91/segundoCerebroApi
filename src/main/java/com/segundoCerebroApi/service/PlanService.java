@@ -63,10 +63,17 @@ public class PlanService {
         return count;
     }
 
-    /** Mensagem de aviso quando o recurso recém-criado foi o último permitido pelo plano. */
-    public String lastItemWarning(User user, long countBeforeCreate, Integer limit, String resource) {
+    /**
+     * Mensagem de aviso quando o recurso recém-criado foi o último permitido pelo plano.
+     *
+     * <p>{@code frase} chega já flexionada ("Esta foi a sua última nota", "Este
+     * foi o seu último tema"), porque o gênero varia com o recurso. Antes o
+     * método montava {@code "último " + resource} com resource="nota" e saía
+     * "Este foi o seu último nota do plano FREE".</p>
+     */
+    public String lastItemWarning(User user, long countBeforeCreate, Integer limit, String frase) {
         if (limit != null && countBeforeCreate + 1 == limit) {
-            return "Este foi o seu último " + resource + " do plano FREE. Deseja migrar para o plano PRO?";
+            return frase + " do plano FREE. Deseja migrar para o plano PRO?";
         }
         return null;
     }

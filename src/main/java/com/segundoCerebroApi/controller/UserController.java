@@ -23,10 +23,25 @@ public class UserController {
         this.userService = userService;
     }
 
+    /**
+     * Cria um usuário.
+     *
+     * <p>O endpoint atende dois casos: o cadastro público, em que a pessoa
+     * define a própria senha e entra direto no app; e a criação feita por um
+     * administrador autenticado, em que a senha é provisória e o usuário cai na
+     * tela de primeiro acesso para definir a dele.</p>
+     */
     @PostMapping
     public ResponseEntity<UserResponseDTO> createUser(@RequestBody @Valid UserRequestDTO dto) {
-        UserResponseDTO response = userService.create(dto);
+        UserResponseDTO response = userService.create(dto, criadoPorAdmin());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private static boolean criadoPorAdmin() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
     @GetMapping

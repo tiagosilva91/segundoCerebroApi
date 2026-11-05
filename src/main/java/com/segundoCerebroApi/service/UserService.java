@@ -24,8 +24,19 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /** Cadastro público: o próprio usuário escolhe a senha. */
     @Transactional
     public UserResponseDTO create(UserRequestDTO dto) {
+        return create(dto, false);
+    }
+
+    /**
+     * @param senhaProvisoria quando true, a conta nasce com {@code firstLogin=true}
+     *        e o usuário é obrigado a definir uma senha própria no primeiro
+     *        acesso. É o caso de contas criadas por um administrador.
+     */
+    @Transactional
+    public UserResponseDTO create(UserRequestDTO dto, boolean senhaProvisoria) {
         // Checagem antecipada para devolver 409 com a mensagem do campo em conflito.
         // Sem isso, a violação de unique estourava como DataIntegrityViolationException
         // e o cliente recebia um 500 genérico.
@@ -41,6 +52,14 @@ public class UserService {
 
         String hash = passwordEncoder.encode(dto.password());
         user.setPassword(hash);
+
+        // Quem se cadastra sozinho escolhe a própria senha, então não há
+        // "primeiro acesso" a cumprir. Antes toda conta nascia com
+        // firstLogin=true e o recém-cadastrado era mandado para
+        // /change-password logo após o cadastro, para trocar a senha que ele
+        // acabara de definir. A tela de primeiro acesso continua valendo para
+        // conta criada por administrador, onde a senha é provisória.
+        user.setFirstLogin(senhaProvisoria);
 
         User savedUser = userRepository.save(user);
         return UserResponseDTO.fromEntity(savedUser);
